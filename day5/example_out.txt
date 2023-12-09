@@ -1,0 +1,73 @@
+--- Part Two ---
+
+Everyone will starve if you only plant such a small number of seeds. Re-reading
+the almanac, it looks like the seeds: line actually describes ranges of seed numbers.
+
+The values on the initial seeds: line come in pairs. Within each pair, the first
+value is the start of the range and the second value is the length of the range.
+So, in the first line of the example above:
+
+seeds: 79 14 55 13
+
+This line describes two ranges of seed numbers to be planted in the garden. The
+first range starts with seed number 79 and contains 14 values: 79, 80, ..., 91,
+92. The second range starts with seed number 55 and contains 13 values: 55, 56,
+..., 66, 67.
+
+Now, rather than considering four seed numbers, you need to consider a total of
+27 seed numbers.
+
+In the above example, the lowest location number can be obtained from seed
+number 82, which corresponds to soil 84, fertilizer 84, water 84, light 77,
+temperature 45, humidity 46, and location 46. So, the lowest location number is
+46.
+
+Consider all of the initial seed numbers listed in the ranges on the first line
+of the almanac. What is the lowest location number that corresponds to any of
+the initial seed numbers?
+
+20:13:40 [ vv] process_inputs: seed_to_soil [79 14 55 13]
+20:13:40 [ vv] process_inputs: seed_to_soil 79 for 14 -> <<81>><<14>>    CORRECT
+20:13:40 [ vv] process_inputs: seed_to_soil 55 for 13 -> <<57>><<13>>    CORRECT
+20:13:40 [ vv] process_inputs: soil_to_fertilizer [81 14 57 13]
+20:13:40 [ vv] process_inputs: soil_to_fertilizer 81 for 14 -> <<81>><<14>>    CORRECT
+20:13:40 [ vv] process_inputs: soil_to_fertilizer 57 for 13 -> <<57>><<13>>    CORRECT
+20:13:40 [ vv] process_inputs: fertilizer_to_water [81 14 57 13]
+20:13:40 [ vv] process_inputs: fertilizer_to_water 81 for 14 -> <<81>><<14>>    CORRECT
+53 54 55 56 57 58 59 60 -- 
+49 50 51 52 53 54 55 56
+            53 for 4
+            57 58 59 60 61 62 63 64 65 66 67 68 69
+                        61 for 9
+20:13:40 [ vv] process_inputs: fertilizer_to_water 57 for 13 -> <<53>><<4>><<61>><<9>>    CORRECT
+
+20:13:40 [ vv] process_inputs: water_to_light [81 14 53 4 61 9]
+... 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94
+       74 75 76 77 78 79 80 81 82 83 84 85 86 87
+       81 82 83 84 85 86 87 88 89 90 91 92 93 94
+20:13:40 [ vv] process_inputs: water_to_light 81 for 14 -> <<74>><<14>>    CORRECT
+
+20:13:40 [ vv] process_inputs: water_to_light 53 for 4 -> <<46>><<4>>    CORRECT
+20:13:40 [ vv] process_inputs: water_to_light 61 for 9 -> <<54>><<9>>    CORRECT
+20:13:40 [ vv] process_inputs: light_to_temperature [74 14 46 4 54 9]
+64 65 66 67 68 69 70 71 72 73 74 75 76
+68 69 70 71 72 73 74 75 76 77 78 79 80
+                              78 for 3
+                              74 75 76 77 78 79 80 81 82 83 84 85 86 87
+                                       45 for 11
+                                       45 46 47 48 49 50 51 52 53 54 55 ...
+                                       77 78 79 80 81 82 83 84 85 86 87 ...
+20:13:40 [ vv] process_inputs: light_to_temperature 74 for 14 -> <<78>><<3>><<45>><<11>>    CORRECT
+20:13:40 [ vv] process_inputs: light_to_temperature 46 for 4 -> <<82>><<4>>    CORRECT
+20:13:40 [ vv] process_inputs: light_to_temperature 54 for 9 -> <<90>><<9>>    CORRECT
+20:13:40 [ vv] process_inputs: temperature_to_humidity [78 3 45 11 82 4 90 9]
+20:13:40 [ vv] process_inputs: temperature_to_humidity 78 for 3 -> <<78>><<3>>    CORRECT
+20:13:40 [ vv] process_inputs: temperature_to_humidity 45 for 11 -> <<46>><<11>>    CORRECT
+20:13:40 [ vv] process_inputs: temperature_to_humidity 82 for 4 -> <<82>><<4>>    CORRECT
+20:13:40 [ vv] process_inputs: temperature_to_humidity 90 for 9 -> <<90>><<9>>    CORRECT
+20:13:40 [ vv] process_inputs: humidity_to_location [78 3 46 11 82 4 90 9]
+
+20:13:40 [ vv] process_inputs: humidity_to_location 78 for 3 -> <<82>><<3>>    CORRECT
+20:13:40 [ vv] process_inputs: humidity_to_location 46 for 11 -> <<46>><<10>><<60>><<1>>    CORRECT
+20:13:40 [ vv] process_inputs: humidity_to_location 82 for 4 -> <<86>><<4>>    CORRECT
+20:13:40 [ vv] process_inputs: humidity_to_location 90 for 9 -> <<94>><<3>><<56>><<4>><<97>><<2>>    CORRECT

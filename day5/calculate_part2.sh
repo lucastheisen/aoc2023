@@ -1,5 +1,9 @@
 #!/bin/bash
 
+set -e
+
+readonly MAX_NUMBER=9223372036854775807
+
 function load_map {
   local -n map=$1
   map=("${@:2}")
@@ -16,22 +20,6 @@ function log {
       "$(caller 0 | awk '{print $2}')" \
       "${message}"
   fi
-}
-
-function get_value {
-  local -n map=$1
-  local key=$2
-
-  local mapping dest src len
-  for mapping in "${map[@]}"; do
-    read -r dest src len <<<"${mapping}"
-    if ((key>=src)) && ((key<src+len)); then
-      log vv "match for $key in mapping [${mapping}]"
-      echo -n "$((dest+(key-src)))"
-      return
-    fi
-  done
-  echo -n "${key}"
 }
 
 function mapping_for {
@@ -66,26 +54,30 @@ function mapping_for {
   done
 
   log vv "no mapping match in ${!map} for [${key}], using default mapping"
-  local max_number=9223372036854775807
-  local min_start="${max_number}"
+  local min_start="${MAX_NUMBER}"
   for start in "${range_starts[@]}"; do
-    log vvv "range start ${start} key=${key} min_start=${min_start}"
-    if ((start>key)) && ((start<min_start)); then
+    log vvv "range start ((${start}>=${key}))=$(if ((start>=key)); then echo 'true'; else echo 'false'; fi) && ((${start}<${min_start}))=$(if ((start<min_start)); then echo 'true'; else echo 'false'; fi) = $(if ((start>=key)) && ((start<min_start)); then echo 'true'; else echo 'false'; fi)"
+    if ((start>=key)) && ((start<min_start)); then
+      log vvv "found later range startint at ${start}, setting min_start"
       min_start="${start}"
     fi
   done
-  if ((min_start==max_number)); then
-    log vv "unmapped full match for ${key} is ${key} for ${range}"
+
+  log vvv "checking for later range match ((${min_start}==${MAX_NUMBER})) = $(if ((min_start==MAX_NUMBER)); then echo 'true'; else echo 'false'; fi)"
+  if ((min_start==MAX_NUMBER)); then
+    log vv "unmapped full match for ${key} is ${key} for ${range} (no remaining maps)"
     printf '%d ' "${key}" "${range}"
   else
     dest_range="$((min_start-key))"
-    log vv "unmapped partial match for ${key} is ${key} for ${dest_range} (leaving $((range-dest_range)))"
     printf '%d ' "${key}" "${dest_range}"
     
     local remaining_range
     remaining_range="$((range-dest_range))"
     if ((remaining_range>0)); then
+      log vv "unmapped partial match for ${key} is ${key} for ${dest_range} (leaving $((range-dest_range)))"
       mapping_for "${!map}" "${min_start}" "${remaining_range}"
+    else
+      log vv "unmapped full match for ${key} is ${key} for ${range} (next map start ${min_start})"
     fi
   fi
 }
@@ -93,19 +85,19 @@ function mapping_for {
 function process_inputs {
   local -n map=$1
   local key_range_line=$2
-  read -ra seeds <<<"${key_range_line}"
+  read -ra inputs <<<"${key_range_line}"
 
-  local seed
-  local seed_range
+  log vv "${!map} [${inputs[*]}]"
+  local input
+  local range
+  local -a mapped_inputs
   local min_location=0
-  for ((i=0; i<${#seeds[@]}; i=i+2)); do
-    seed="${seeds[${i}]}"
-    seed_range="${seeds[$((i+1))]}"
-    log vv "[${seeds[*]}] seed=[${seed}], seed_range=[${seed_range}]"
+  for ((i=0; i<${#inputs[@]}; i=i+2)); do
+    input="${inputs[${i}]}"
+    range="${inputs[$((i+1))]}"
 
-    local mapped_inputs
-    read -r -a mapped_inputs < <(mapping_for "${!map}" "${seed}" "${seed_range}")
-    log vvv "$(printf "%d for %d -> %s\n" "${seed}" "${seed_range}" "$(printf '<<%s>>' "${mapped_inputs[@]}")")"
+    read -r -a mapped_inputs <<<"$(mapping_for "${!map}" "${input}" "${range}")"
+    log v "${!map} $(printf "%d for %d -> [%s]\n" "${input}" "${range}" "$(printf '<<%s>>' "${mapped_inputs[@]}")")"
     printf '%s ' "${mapped_inputs[@]}"
   done
 }
@@ -146,22 +138,30 @@ function main {
   load_map "${current_map}" "${lines[@]}"
 
   local ranges
-  read -r -a ranges < <(process_inputs humidity_to_location \
+  # cant use this idiom:
+  #   read -r -a some_array < <(echo -e -n "1 2 ")
+  # because it fails (return non-zero), but
+  #   read -r -a some_array <<<"1 2 "
+  # does not...  turns out read will fail if it does not see its delim (newline)
+  # and <<< automatically appends a newline to the string...  thats a very
+  # painful footgun
+  read -r -a ranges <<<"$(process_inputs humidity_to_location \
     "$(process_inputs temperature_to_humidity \
       "$(process_inputs light_to_temperature \
         "$(process_inputs water_to_light \
           "$(process_inputs fertilizer_to_water \
-            "$(process_inputs seed_to_soil "${seeds}")")")")")")
-  echo "res [$(printf '%s ' "${ranges[@]}")]"
+            "$(process_inputs soil_to_fertilizer \
+              "$(process_inputs seed_to_soil "${seeds}")")")")")")")"
+  echo -e "res [\n$(printf '  %s %s\n' "${ranges[@]}")\n]"
 
-  local max_number=9223372036854775807
-  local min_location="${max_number}"
+  local min_location="${MAX_NUMBER}"
   for ((i=0; i<${#ranges[@]}; i=i+2)); do
-    if ((ranges[i]<min_location)); then
-      min_location="${ranges["${i}"]}"
+    location="$((ranges[i]))"
+    if ((location<min_location)); then
+      min_location="${location}"
     fi
   done
   printf 'Minimum location is: %d' "${min_location}"
 }
 
-main "$@"
+(return 0 2>/dev/null) || main "$@"
