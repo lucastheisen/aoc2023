@@ -4,9 +4,77 @@ set -e
 
 readonly MAX_NUMBER=9223372036854775807
 
+function dedup_inputs {
+  local inputs
+  read -ra inputs <<<"${1}"
+  local num_inputs="${#inputs[@]}"
+
+  local -a unsorted_inputs
+  local -A input_range_map
+  local input range
+  for ((i=0; i<num_inputs; i=i+2)); do
+    input="${inputs[${i}]}"
+    range="${inputs[$((i+1))]}"
+    unsorted_inputs+=("${input}")
+    input_range_map[${input}]="${range}"
+  done
+
+  local -a sorted_inputs
+  readarray -d $'\0' -t sorted_inputs < <(printf '%s\0' "${unsorted_inputs[@]}" | sort -n -z)
+  log v "unsorted_inputs [$(printf '%s,' "${unsorted_inputs[@]}")], sorted_inputs [$(printf '%s,' "${sorted_inputs[@]}")]"
+
+  num_inputs="${#sorted_inputs[@]}"
+  local next_input
+  for ((i=0; i<num_inputs; i++)); do
+    input="${sorted_inputs[${i}]}"
+    printf '%s ' "${input}"
+
+    range="${input_range_map[${input}]}"
+    log v "checking input[$i/${num_inputs}]: ${input} for ${range} (max value $((input+range)))"
+    local next_range
+    while ((i+1<num_inputs)); do
+      next_input="${sorted_inputs[$((i+1))]}"
+      log vvv "checking ${next_input}"
+
+      if ((next_input>input+range+1)); then
+        break
+      fi
+      log vv "input ${input} for ${range} extends into ${next_input}"
+      ((next_range=(next_input+input_range_map[${next_input}])-input))
+      if ((next_range>range)); then
+        range="${next_range}"
+      fi
+
+      # dont use i++ because if i was zero, then the postfix will return the
+      # original value which was zero which causes bash arithmetic to return 1
+      # thus error out.  could use prefix ++ for increment but also dangerous
+      # if i were ever -1. this approach is safe though
+      ((i=i+1))
+      log vvv "bout to check $((i+1))<${num_inputs}"
+    done
+    log vvv "printing range ${range}"
+    printf '%s ' "${range}"
+  done
+}
+
 function load_map {
   local -n map=$1
   map=("${@:2}")
+
+  # unnecessary work, but will help visualize the mappings better by writing out
+  # sorted with src first and include a max_src
+  printf '%s:\n%s\n\n' \
+    "${!map}" \
+    "$(
+      (
+        local mapping dest src range max_src add_to_src
+        for mapping in "${map[@]}"; do
+          read -r dest src range <<<"${mapping}"
+          ((max_src=src+range-1))
+          ((add_to_src=dest-src))
+          printf '%d %d %d %d %d\n' "${src}" "${max_src}" "${add_to_src}" "${dest}" "${range}"
+        done
+      ) | sort -n)"
 }
 
 function log {
@@ -85,7 +153,10 @@ function mapping_for {
 function process_inputs {
   local -n map=$1
   local key_range_line=$2
-  read -ra inputs <<<"${key_range_line}"
+
+  local dedupd
+  dedupd=$(dedup_inputs "${key_range_line}")
+  read -ra inputs <<<"${dedupd}"
 
   log vv "${!map} [${inputs[*]}]"
   local input
@@ -104,21 +175,25 @@ function process_inputs {
 
 function main {
   local file="${1:-input.txt}"
-  log v "begin main for ${file}"
+  local path
+  path="$(dirname "$(readlink --canonicalize-existing "$0")")/${file}"
+  local sorted_path="${path%.txt}_sorted.txt"
+  log v "begin main for ${path}"
 
   local current_map
   local lines
   local seeds
-  exec 3< "$(dirname "$(readlink --canonicalize-existing "$0")")/${file}"
+  exec 3< "${path}"
   while read -r -u 3 line; do
     case "${line}" in
       "seeds: "*)
         log vv "got seeds line ${line}"
         seeds="${line##seeds: }"
+        printf 'seeds: %s\n\n' "$(dedup_inputs "${seeds}")" > "${sorted_path}"
         ;;
       *" map:")
         if [[ -n "${current_map}" ]]; then
-          load_map "${current_map}" "${lines[@]}"
+          load_map "${current_map}" "${lines[@]}" >> "${sorted_path}"
           lines=()
         fi
         current_map="${line%% map:}"
@@ -135,7 +210,8 @@ function main {
   done
   exec 3<&-
 
-  load_map "${current_map}" "${lines[@]}"
+  load_map "${current_map}" "${lines[@]}" >> "${sorted_path}"
+  exit 1
 
   local ranges
   # cant use this idiom:
@@ -145,23 +221,19 @@ function main {
   # does not...  turns out read will fail if it does not see its delim (newline)
   # and <<< automatically appends a newline to the string...  thats a very
   # painful footgun
-  read -r -a ranges <<<"$(process_inputs humidity_to_location \
-    "$(process_inputs temperature_to_humidity \
-      "$(process_inputs light_to_temperature \
-        "$(process_inputs water_to_light \
-          "$(process_inputs fertilizer_to_water \
-            "$(process_inputs soil_to_fertilizer \
-              "$(process_inputs seed_to_soil "${seeds}")")")")")")")"
+  read -r -a ranges <<<"$(dedup_inputs \
+    "$(process_inputs humidity_to_location \
+      "$(process_inputs temperature_to_humidity \
+        "$(process_inputs light_to_temperature \
+          "$(process_inputs water_to_light \
+            "$(process_inputs fertilizer_to_water \
+              "$(process_inputs soil_to_fertilizer \
+                "$(process_inputs seed_to_soil "${seeds}")")")")")")")")"
   echo -e "res [\n$(printf '  %s %s\n' "${ranges[@]}")\n]"
 
-  local min_location="${MAX_NUMBER}"
-  for ((i=0; i<${#ranges[@]}; i=i+2)); do
-    location="$((ranges[i]))"
-    if ((location<min_location)); then
-      min_location="${location}"
-    fi
-  done
-  printf 'Minimum location is: %d' "${min_location}"
+  # dedup_inputs results in sorted output so minimum location would be the very
+  # first value
+  printf 'Minimum location is: %d' "${ranges[0]}"
 }
 
 (return 0 2>/dev/null) || main "$@"
