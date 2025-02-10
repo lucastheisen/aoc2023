@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <LangVersion>10</LangVersion>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <RepositoryUrl>https://gitlab.mitre.org/asias-etl/dotnet-cli-app.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <CoverletCollectorVersion>3.1.0</CoverletCollectorVersion>
+    <CliWrapVersion>3.6.7</CliWrapVersion>
+    <CsvHelperVersion>33.0.1</CsvHelperVersion>
+    <!-- keep in line with the argo-workflows project Directory.Build.props -->
+    <KubernetesClientVersion>5.0.5</KubernetesClientVersion>
+    <McMasterExtensionsCommandLineUtilsVersion>4.1.1</McMasterExtensionsCommandLineUtilsVersion>
+    <MartinCostelloLoggingXunitVersion>0.4.0</MartinCostelloLoggingXunitVersion>
+    <MicrosoftDataSqlClientVersion>2.1.7</MicrosoftDataSqlClientVersion>
+    <MicrosoftExtensionsVersion>8.0.0</MicrosoftExtensionsVersion>
+    <MicrosoftNETTestSdkVersion>16.11.0</MicrosoftNETTestSdkVersion>
+    <!-- keep in line with the argo-workflows project Directory.Build.props -->
+    <MitreArgoWorkflowsVersion>1.0.11</MitreArgoWorkflowsVersion>
+    <MonoPosixNetStandardVersion>1.0.0</MonoPosixNetStandardVersion>
+    <MoqVersion>4.20.72</MoqVersion>
+    <MySqlDataVersion>8.4.0</MySqlDataVersion>
+    <!-- This is the community driver and implements the BulkCopy API -->
+    <MySqlConnectorVersion>2.3.7</MySqlConnectorVersion>
+    <NerdbankGitVersioningVersion>3.6.146</NerdbankGitVersioningVersion>
+    <NetVersion>net8.0</NetVersion>
+    <NetCoreMailKitVersion>2.1.0</NetCoreMailKitVersion>
+    <NewtonsoftJsonVersion>13.0.3</NewtonsoftJsonVersion>
+    <NpgsqlVersion>8.0.5</NpgsqlVersion>
+    <OracleManagedDataAccessCoreVersion>23.6.0</OracleManagedDataAccessCoreVersion>
+    <RichardSzalayMockHttpVersion>7.0.0</RichardSzalayMockHttpVersion>
+    <SharpCifsStdVersion>0.2.13</SharpCifsStdVersion>
+    <!-- need 1.2.0-beta.261 for c# 9 records:
+      https://stackoverflow.com/a/65211174/516433 -->
+    <SshNetVersion>2024.2.0</SshNetVersion>
+    <StyleCopAnalyzersVersion>1.2.0-beta.556</StyleCopAnalyzersVersion>
+    <SystemComponentModelAnnotationsVersion>5.0.0</SystemComponentModelAnnotationsVersion>
+    <SystemDataOdbcVersion>8.0.1</SystemDataOdbcVersion>
+    <SystemIOAbstractionsVersion>21.0.29</SystemIOAbstractionsVersion>
+    <SystemIOFileSystemAccessControlVersion>5.0.0</SystemIOFileSystemAccessControlVersion>
+    <SystemIOPipelinesVersion>8.0.0</SystemIOPipelinesVersion>
+    <SystemLinqAsyncVersion>6.0.1</SystemLinqAsyncVersion>
+    <SystemTextEncodingsWebVersion>8.0.0</SystemTextEncodingsWebVersion>
+    <SystemThreadingTasksDataflowVersion>8.0.1</SystemThreadingTasksDataflowVersion>
+    <XunitVersion>2.9.2</XunitVersion>
+    <XunitRunnerVisualStudioVersion>2.8.2</XunitRunnerVisualStudioVersion>
+    <YamlDotNetVersion>16.1.3</YamlDotNetVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Nerdbank.GitVersioning" Version="$(NerdbankGitVersioningVersion)" PrivateAssets="all" />
+    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- not multi-lingual. specifying to resolve CA1014 warning -->
+    <AssemblyAttribute Include="System.CLSCompliantAttribute">
+      <_Parameter1>false</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>
